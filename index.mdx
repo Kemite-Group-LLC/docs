@@ -5,7 +5,7 @@ description: "Welcome to the KemyCard API documentation"
 
 ## What is KemyCard?
 
-KemyCard is an API that allows businesses to issue **virtual and physical cards**, manage **KYC/POA verification**, create **crypto wallets**, **virtual bank accounts**, and purchase **gift cards** — all through a simple, unified REST API.
+KemyCard is a unified fintech API that gives businesses instant access to **card issuing**, **KYC verification**, **crypto wallets**, **virtual bank accounts**, and a massive **gift card catalog** — all through a single REST API. Fund everything with USDC, settle in multiple currencies.
 
 <Card
   title="Get started"
@@ -20,24 +20,32 @@ KemyCard is an API that allows businesses to issue **virtual and physical cards*
 
 <Columns cols={2}>
   <Card title="Virtual & Physical Cards" icon="credit-card" href="/guides/customer-to-card">
-    Issue Mastercard and Visa cards for your customers. Fund them with USDC.
+    Issue **Mastercard and Visa** cards (virtual and physical) for your customers. Fund them instantly with USDC. Prepaid, reloadable, single-use — all categories available.
   </Card>
-  <Card title="KYC & POA" icon="id-card" href="/guides/kyc-flow">
-    Verify your customers' identity and address through our integrated providers.
+  <Card title="KYC & POA Verification" icon="id-card" href="/guides/kyc-flow">
+    Verify your customers' **identity and address** through our integrated providers. 3-level verification system (basic, verified, full) with automatic demotion on data changes.
   </Card>
   <Card title="Crypto Wallets" icon="wallet" href="/api-reference/wallets/create">
-    Create custodial wallets for your customers (Solana, USDC).
+    Create **custodial wallets** for your customers on Solana. Send and receive USDC programmatically.
   </Card>
   <Card title="Virtual Bank Accounts" icon="building-columns" href="/api-reference/virtual-accounts/create">
-    Provide virtual IBANs to your customers to receive EUR wire transfers.
+    Provide your customers with **virtual bank accounts** for on/off ramp operations. Support for **USD, EUR, GBP, MXN, BRL** — 5+ currencies available.
   </Card>
   <Card title="Gift Cards" icon="gift" href="/api-reference/gift-cards/catalog">
-    Purchase gift cards (Netflix, Amazon, Steam...) via API for your customers.
+    Access a catalog of **3,000+ brands** and **12,000+ products** worldwide. Netflix, Amazon, Steam, Apple, Google Play, Uber, and thousands more. Purchase and deliver instantly via API.
   </Card>
   <Card title="Balance & Ops" icon="chart-line" href="/guides/ops-balance">
-    Manage your operational balances and view transaction history.
+    Manage your operational balances, deposit USDC on Solana, and track every transaction in real time.
   </Card>
 </Columns>
+
+## Why KemyCard?
+
+- **One API, all services** — Cards, KYC, wallets, bank accounts, gift cards under a single integration
+- **USDC-powered** — Fund your ops balance with USDC on Solana, we handle the rest
+- **Global coverage** — Gift cards in 50+ countries, virtual bank accounts in 5+ currencies, cards accepted worldwide
+- **Test mode included** — Build and test your integration with `sk_test_` keys, zero cost, zero risk
+- **Instant setup** — Get your API keys and make your first call in under 2 minutes
 
 ## Base URL
 
@@ -61,7 +69,8 @@ Authorization: Bearer sk_test_YOUR_API_KEY
 
 ## Who is this API for?
 
-- **Fintechs** looking to offer cards to their users
-- **Neobanks** that need a card-issuing infrastructure
-- **Crypto platforms** that want cards funded with USDC
-- **Marketplaces** looking to distribute gift cards or prepaid cards
+- **Fintechs** looking to offer cards and financial services to their users
+- **Neobanks** that need a complete card-issuing and banking infrastructure
+- **Crypto platforms** that want to bridge crypto to real-world spending with cards and bank accounts
+- **Marketplaces & platforms** looking to distribute gift cards or prepaid cards at scale
+- **SaaS & payroll companies** that need to issue virtual cards for expense management
