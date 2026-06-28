@@ -7,10 +7,10 @@
     "light": "#818CF8",
     "dark": "#4F46E5"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://s3.eu-west-1.wasabisys.com/kemycard/image/favicon-kemycard-dark.jpg",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "https://s3.eu-west-1.wasabisys.com/kemycard/image/favicon-kemycard-dark.jpg",
+    "dark": "https://s3.eu-west-1.wasabisys.com/kemycard/image/favicon-kemycard-dark.jpg"
   },
   "navbar": {
     "links": [
