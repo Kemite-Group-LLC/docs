@@ -1,0 +1,107 @@
+---
+title: "Customer to Card"
+description: "Complete flow: create a customer, verify identity, and issue a card"
+---
+
+This guide walks you through the full flow to issue a card for a customer.
+
+## Overview
+
+```
+Step 1: Create customer        → BASIC
+Step 2: Submit KYC             → PENDING
+Step 3: KYC approved           → VERIFIED
+Step 4: Create card            → PENDING
+Step 5: Card activated         → ACTIVE
+Step 6: Top up card            → Funded
+```
+
+<Info>
+  A customer must be at least `verified` (KYC approved) to receive a card.
+</Info>
+
+## Step 1: Create a customer
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/customers \
+  -H "Authorization: Bearer sk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_reference": "user-001",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+33612345678",
+    "date_of_birth": "1990-05-15",
+    "address": "123 Main Street",
+    "city": "Paris",
+    "state": "IDF",
+    "postal_code": "75001",
+    "country": "FRA"
+  }'
+```
+
+The customer is created with `verification_level: basic`.
+
+## Step 2: Submit KYC verification
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/kyc/applicants \
+  -H "Authorization: Bearer sk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_code": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"}'
+```
+
+Response includes a `verification_url` — redirect your customer there, or use the SDK token to embed the verification flow.
+
+## Step 3: Wait for KYC approval
+
+Poll the status endpoint or listen for the `kyc.approved` webhook:
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/kyc/applicants/a1b2c3d4-.../status \
+  -H "Authorization: Bearer sk_test_YOUR_KEY"
+```
+
+Once approved, the customer automatically upgrades to `verification_level: verified`.
+
+## Step 4: Create a card
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/cards \
+  -H "Authorization: Bearer sk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_code": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "brand": "MASTERCARD",
+    "category": "virtual_basic",
+    "currency": "USD"
+  }'
+```
+
+<Warning>
+  Card creation debits your ops balance (`cards_mastercard` or `cards_visa`). Make sure you have sufficient funds.
+</Warning>
+
+## Step 5: Card activated
+
+Once the provider confirms, the card status changes to `active`. You'll receive a `card.activated` webhook.
+
+## Step 6: Top up the card
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/cards/c1d2e3f4-.../topup \
+  -H "Authorization: Bearer sk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50.00}'
+```
+
+## Verification levels required
+
+| Product | Minimum level | Why |
+|---------|--------------|-----|
+| Gift Cards (low amounts) | `basic` | Low risk |
+| Virtual Cards | `verified` | KYC required by card networks |
+| Physical Cards | `verified` | KYC required |
+| Crypto Wallets | `verified` | KYC required by regulation |
+| Virtual Bank Accounts | `full` | KYC + POA required for banking |

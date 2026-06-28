@@ -1,97 +1,67 @@
 ---
 title: "Introduction"
-description: "Welcome to the new home for your documentation"
+description: "Welcome to the KemyCard API documentation"
 ---
 
-## Setting up
+## What is KemyCard?
 
-Get your documentation site up and running in minutes.
+KemyCard is an API that allows businesses to issue **virtual and physical cards**, manage **KYC/POA verification**, create **crypto wallets**, **virtual bank accounts**, and purchase **gift cards** — all through a simple, unified REST API.
 
 <Card
-  title="Start here"
+  title="Get started"
   icon="rocket"
-  href="/quickstart"
+  href="/getting-started/api-keys"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Get your API keys and make your first call in 2 minutes.
 </Card>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+## Available products
 
 <Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+  <Card title="Virtual & Physical Cards" icon="credit-card" href="/guides/customer-to-card">
+    Issue Mastercard and Visa cards for your customers. Fund them with USDC.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="KYC & POA" icon="id-card" href="/guides/kyc-flow">
+    Verify your customers' identity and address through our integrated providers.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Crypto Wallets" icon="wallet" href="/api-reference/wallets/create">
+    Create custodial wallets for your customers (Solana, USDC).
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Virtual Bank Accounts" icon="building-columns" href="/api-reference/virtual-accounts/create">
+    Provide virtual IBANs to your customers to receive EUR wire transfers.
+  </Card>
+  <Card title="Gift Cards" icon="gift" href="/api-reference/gift-cards/catalog">
+    Purchase gift cards (Netflix, Amazon, Steam...) via API for your customers.
+  </Card>
+  <Card title="Balance & Ops" icon="chart-line" href="/guides/ops-balance">
+    Manage your operational balances and view transaction history.
   </Card>
 </Columns>
 
-## Create beautiful pages
+## Base URL
 
-Everything you need to create world-class documentation.
+```
+https://api.kemycard.com/api/v1
+```
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Authentication
 
-## Need inspiration?
+All requests require an `Authorization` header with your API key:
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+```bash
+Authorization: Bearer sk_test_YOUR_API_KEY
+```
+
+<Info>
+  You have two types of keys:
+  - `sk_test_...` for test mode (simulated data, zero impact)
+  - `sk_live_...` for production (real operations)
+</Info>
+
+## Who is this API for?
+
+- **Fintechs** looking to offer cards to their users
+- **Neobanks** that need a card-issuing infrastructure
+- **Crypto platforms** that want cards funded with USDC
+- **Marketplaces** looking to distribute gift cards or prepaid cards

@@ -1,0 +1,75 @@
+---
+title: "KYC Flow"
+description: "Verify your customer's identity: from basic to verified"
+---
+
+KYC (Know Your Customer) verifies a customer's identity using an official document (passport, ID card, driver's license). Once approved, the customer upgrades from `basic` to `verified`.
+
+## Flow
+
+```
+Customer (BASIC)
+    │
+    ▼
+POST /kyc/applicants
+    │
+    ▼
+Customer completes verification
+    │
+    ├── approved  → Customer becomes VERIFIED
+    ├── rejected  → Customer stays BASIC
+    └── resubmission_requested → Customer can retry
+```
+
+## Step 1: Initiate KYC
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/kyc/applicants \
+  -H "Authorization: Bearer sk_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_code": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"}'
+```
+
+Response includes a `verification_url` and `provider_applicant_id`.
+
+## Step 2: Customer completes verification
+
+**Option A: Redirect** — Redirect the customer to the `verification_url`.
+
+**Option B: SDK embed** — Use the token endpoint to embed the verification widget:
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/kyc/applicants/a1b2c3d4-.../token \
+  -H "Authorization: Bearer sk_live_YOUR_KEY"
+```
+
+## Step 3: Check the result
+
+### Via polling
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/kyc/applicants/a1b2c3d4-.../status \
+  -H "Authorization: Bearer sk_live_YOUR_KEY"
+```
+
+### Via webhook
+
+| Event | Meaning |
+|-------|---------|
+| `kyc.approved` | Identity verified — customer is now `verified` |
+| `kyc.rejected` | Verification failed |
+| `kyc.resubmission_requested` | Documents unclear — customer should retry |
+
+## KYC status values
+
+| Status | Description |
+|--------|-------------|
+| `not_started` | KYC has not been initiated yet |
+| `pending` | Verification in progress at the provider |
+| `approved` | Identity verified — customer upgrades to `verified` |
+| `rejected` | Definitive rejection by the provider |
+| `resubmission_requested` | Insufficient documents, new submission required |
+
+<Warning>
+  If a `verified` customer's identity fields are modified (`first_name`, `last_name`, `date_of_birth`), they are automatically **demoted back to `basic`** and must redo KYC.
+</Warning>

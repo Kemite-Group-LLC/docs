@@ -1,0 +1,88 @@
+---
+title: "Ops Balance"
+description: "Manage your operational balances and fund your account"
+---
+
+Your partner account has **4 operational balances**, each dedicated to a product category.
+
+## Balance types
+
+| Type | Label | Used for |
+|------|-------|----------|
+| `cards_mastercard` | Ops Cards (Mastercard) | Creating and funding Mastercard cards |
+| `cards_visa` | Ops Cards (Visa) | Creating and funding Visa cards |
+| `gift_cards` | Ops Gift Cards | Purchasing gift cards |
+| `others` | Ops Others | Wallets, virtual accounts, KYC, physical cards |
+
+## Check your balances
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/balance \
+  -H "Authorization: Bearer sk_live_YOUR_KEY"
+```
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "type": "cards_mastercard",
+      "label": "Ops Cards (Mastercard)",
+      "balance": "1500.00",
+      "currency": "USD",
+      "deposit_address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+      "wallet_status": "active"
+    }
+  ]
+}
+```
+
+## Fund your balance
+
+<Steps>
+  <Step title="Get your deposit address">
+    Call `GET /balance` and copy the `deposit_address` for the balance you want to fund.
+  </Step>
+  <Step title="Send USDC">
+    Send USDC (Solana network) to the deposit address from any wallet or exchange.
+  </Step>
+  <Step title="Balance credited">
+    Your balance is credited automatically once the transaction is confirmed. You'll receive a `balance.credited` webhook.
+  </Step>
+</Steps>
+
+<Warning>
+  Only send **USDC on Solana** to the deposit address. Sending other tokens or using a different network may result in lost funds.
+</Warning>
+
+## Transaction history
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/balance/transactions?page=1&limit=20 \
+  -H "Authorization: Bearer sk_live_YOUR_KEY"
+```
+
+### Transaction natures
+
+| Nature | Description |
+|--------|-------------|
+| `TOPUP` | USDC deposit received |
+| `CARD_CREATION` | Card creation fee |
+| `CARD_RELOAD` | Card top-up |
+| `KYC_VERIFICATION` | KYC verification fee |
+| `POA_VERIFICATION` | POA verification fee |
+| `WALLET_CREATION` | Crypto wallet creation fee |
+| `GIFT_CARD_PURCHASE` | Gift card purchase |
+| `VIRTUAL_ACCOUNT_CREATION` | Virtual bank account creation fee |
+| `REFUND` | Refund |
+| `ADJUSTMENT` | Manual adjustment (admin) |
+| `SUBSCRIPTION` | Subscription payment |
+
+## Wallet statuses
+
+| Status | Description |
+|--------|-------------|
+| `not_created` | Deposit wallet not yet created |
+| `pending` | Creation in progress |
+| `active` | Active — `deposit_address` available for USDC deposits |
+| `failed` | Creation failed |

@@ -1,0 +1,50 @@
+---
+title: "POA Flow"
+description: "Verify your customer's address: from verified to full"
+---
+
+POA (Proof of Address) verifies a customer's residential address using a utility bill, bank statement, or official document. Once approved, the customer upgrades from `verified` to `full`.
+
+<Info>
+  POA can only be submitted for customers who are already `verified` (KYC approved).
+</Info>
+
+## Flow
+
+```
+Customer (VERIFIED)
+    │
+    ▼
+Submit proof of address
+    │
+    ├── approved  → Customer becomes FULL
+    ├── rejected  → Customer stays VERIFIED
+    └── resubmission_requested → Customer can retry
+```
+
+## Requirements
+
+- Customer must be at `verified` level (KYC approved)
+- Accepted documents: utility bill, bank statement, government letter
+- Document must be less than 3 months old
+- Address on the document must match the customer's registered address
+
+## What does `full` unlock?
+
+| Product | Required level |
+|---------|---------------|
+| Virtual bank accounts (IBAN) | `full` |
+| Higher transaction limits | `full` |
+| Physical card delivery | `full` |
+
+## Automatic demotion
+
+<Warning>
+  If a `full` customer's address fields are modified, they are automatically **demoted back to `verified`** and must redo POA.
+</Warning>
+
+| Fields modified | Before | After | Reason |
+|----------------|--------|-------|--------|
+| `first_name`, `last_name`, `date_of_birth` | verified or full | **basic** | Identity changed — KYC + POA reset |
+| `address`, `city`, `state`, `postal_code`, `country` | full | **verified** | Address changed — POA reset, KYC stays valid |
+| `email`, `phone`, `metadata` | any | **unchanged** | No impact on verification |

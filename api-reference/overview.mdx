@@ -1,0 +1,106 @@
+---
+title: "API Reference"
+description: "Technical reference for all KemyCard API endpoints"
+---
+
+## Base URL
+
+```
+https://api.kemycard.com/api/v1
+```
+
+## Authentication
+
+All endpoints require a Bearer token:
+
+```bash
+Authorization: Bearer sk_test_YOUR_API_KEY
+```
+
+## Response format
+
+Every response follows this envelope:
+
+```json
+{
+  "success": true,
+  "data": { "..." },
+  "meta": {
+    "request_id": "a4f8e2c1b3d97056",
+    "mode": "test",
+    "timestamp": "2026-06-28T14:30:00+00:00"
+  },
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 42,
+    "pages": 3
+  }
+}
+```
+
+| Field | Present | Description |
+|-------|---------|-------------|
+| `success` | Always | `true` on success, `false` on error |
+| `data` | On success | The response payload |
+| `error` | On error | Error details (`code`, `message`, `details`) |
+| `meta` | Always | Request ID, mode (test/live), timestamp |
+| `pagination` | List endpoints only | Page info |
+
+## Pagination
+
+All list endpoints support pagination:
+
+| Param | Type | Default | Max | Description |
+|-------|------|---------|-----|-------------|
+| `page` | int | 1 | — | Page number |
+| `limit` | int | 20 | 100 | Items per page |
+
+## Endpoints overview
+
+### No subscription required
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/customers` | Create a customer |
+| `GET` | `/customers` | List customers |
+| `GET` | `/customers/{code}` | Get a customer |
+| `PATCH` | `/customers/{code}` | Update a customer |
+| `POST` | `/customers/{code}/suspend` | Suspend a customer |
+| `POST` | `/customers/{code}/activate` | Activate a customer |
+| `GET` | `/balance` | Get ops balance summary |
+| `GET` | `/balance/transactions` | List ops transactions |
+
+### Subscription: `cards` or `all_in_one`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/cards` | Create a card |
+| `GET` | `/cards` | List cards |
+| `GET` | `/cards/{code}` | Get a card |
+| `POST` | `/cards/{code}/freeze` | Freeze a card |
+| `POST` | `/cards/{code}/topup` | Top up a card |
+| `POST` | `/kyc/applicants` | Initiate KYC |
+| `GET` | `/kyc/applicants/{id}/token` | Get KYC token |
+| `GET` | `/kyc/applicants/{id}/status` | Get KYC status |
+
+### Subscription: `wallets` or `all_in_one`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/wallets` | Create a wallet |
+| `GET` | `/wallets` | List wallets |
+
+### Subscription: `virtual_accounts` or `all_in_one`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/virtual-accounts` | Create a virtual account |
+| `GET` | `/virtual-accounts` | List virtual accounts |
+
+### Subscription: `gift_cards` or `all_in_one`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/gift-cards/catalog` | Browse gift card catalog |
+| `POST` | `/gift-cards/orders` | Purchase a gift card |

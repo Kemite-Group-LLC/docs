@@ -1,0 +1,106 @@
+---
+title: "Error Handling"
+description: "Understand and handle API errors properly"
+---
+
+All API errors follow a consistent JSON format. When `success` is `false`, the response contains an `error` object instead of `data`.
+
+## Error response format
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Missing required fields.",
+    "details": {
+      "missing_fields": ["email", "country"]
+    }
+  },
+  "meta": {
+    "request_id": "a4f8e2c1b3d97056",
+    "mode": "test",
+    "timestamp": "2026-06-28T14:30:00+00:00"
+  }
+}
+```
+
+## Error codes
+
+| HTTP | Code | Description |
+|------|------|-------------|
+| 401 | `AUTHENTICATION_REQUIRED` | No `Authorization` header provided |
+| 401 | `AUTHENTICATION_FAILED` | API key is invalid, expired, or revoked |
+| 402 | `SUBSCRIPTION_REQUIRED` | No active subscription for the requested product |
+| 400 | `INSUFFICIENT_BALANCE` | Ops balance too low for the operation |
+| 403 | `FORBIDDEN` | Operation not allowed |
+| 404 | `RESOURCE_NOT_FOUND` | Resource not found or doesn't belong to your partner account |
+| 422 | `VALIDATION_ERROR` | Invalid input data — check `details` for specifics |
+| 429 | `RATE_LIMIT_EXCEEDED` | Too many requests — check `details.retry_after` |
+| 500 | `INTERNAL_ERROR` | Unexpected server error |
+
+## Rate limiting
+
+The API allows **100 requests per minute** per API key. Rate limit info is included in every response header:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 97
+X-RateLimit-Reset: 1719590460
+```
+
+<Tip>
+  Use `details.retry_after` (in seconds) to know when to retry your request.
+</Tip>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Always check the success field">
+
+```javascript
+const res = await fetch('/api/v1/customers', { ... });
+const data = await res.json();
+
+if (!data.success) {
+  console.error(`Error ${data.error.code}: ${data.error.message}`);
+  return;
+}
+// Use data.data safely
+```
+
+  </Accordion>
+  <Accordion title="Log the request_id for support">
+    Every response includes a unique `meta.request_id`. When contacting support, include this ID so we can quickly locate your request in our logs.
+  </Accordion>
+  <Accordion title="Handle rate limits gracefully">
+    Implement exponential backoff or use `retry_after` to wait before retrying. Never retry immediately in a tight loop.
+  </Accordion>
+  <Accordion title="Validate before calling the API">
+    Validate email formats, country codes (ISO 3166-1 alpha-3), and required fields on your side before making API calls.
+  </Accordion>
+</AccordionGroup>
+
+## Validation error examples
+
+```json
+// Missing fields
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Missing required fields.",
+  "details": { "missing_fields": ["phone", "country"] }
+}
+
+// Duplicate reference
+{
+  "code": "VALIDATION_ERROR",
+  "message": "A customer with this external_reference already exists.",
+  "details": { "existing_customer_code": "a1b2c3d4-..." }
+}
+
+// Invalid format
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Country must be a valid ISO 3166-1 alpha-3 code (e.g. USA, FRA, NGA)."
+}
+```

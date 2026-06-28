@@ -1,0 +1,63 @@
+---
+title: "API Keys"
+description: "Generate your test and live API keys from the partner dashboard"
+---
+
+## Key types
+
+Each partner has **two types of keys**:
+
+| Key | Prefix | Usage |
+|-----|--------|-------|
+| **Test** | `sk_test_` | Integration and testing — simulated data, no real operations |
+| **Live** | `sk_live_` | Production — real operations, ops balance debited |
+
+## Generate your keys
+
+<Steps>
+  <Step title="Log in to the dashboard">
+    Go to [partner.kemycard.com](https://partner.kemycard.com) and sign in with your partner account.
+  </Step>
+  <Step title="Navigate to the API section">
+    In the sidebar, click **API Keys**.
+  </Step>
+  <Step title="Generate a key">
+    Click **Generate new key** and choose the type (test or live).
+  </Step>
+  <Step title="Copy your key">
+    The key is displayed **only once**. Copy it and store it securely (environment variables, secret manager).
+  </Step>
+</Steps>
+
+<Warning>
+  Never share your API keys. Never commit them in your source code. Always use environment variables.
+</Warning>
+
+## Usage
+
+Add the `Authorization` header to every request:
+
+```bash
+curl -X GET https://api.kemycard.com/api/v1/customers \
+  -H "Authorization: Bearer sk_test_YOUR_API_KEY"
+```
+
+## Revoking a key
+
+You can revoke a key at any time from the dashboard. Once revoked, any request using that key will return a `401 AUTHENTICATION_FAILED` error.
+
+## Permissions
+
+Each key gives access to the products included in your subscription:
+
+| Subscription | Access |
+|-------------|--------|
+| Cards | `/customers`, `/cards`, `/kyc`, `/balance` |
+| Wallets | `/customers`, `/wallets`, `/balance` |
+| Virtual Accounts | `/customers`, `/virtual-accounts`, `/balance` |
+| Gift Cards | `/customers`, `/gift-cards`, `/balance` |
+| All-in-One | All endpoints |
+
+<Info>
+  The `/customers` and `/balance` endpoints are accessible with **any** active subscription, as customers are the foundation of all products.
+</Info>

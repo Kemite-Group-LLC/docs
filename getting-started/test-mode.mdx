@@ -1,0 +1,85 @@
+---
+title: "Test Mode vs Live Mode"
+description: "Understand the difference between test and live environments"
+---
+
+KemyCard provides two completely separate environments, controlled by your API key prefix.
+
+## Comparison
+
+| | Test mode (`sk_test_`) | Live mode (`sk_live_`) |
+|---|---|---|
+| **Data** | Simulated (fake) | Real (database) |
+| **Database writes** | None | Yes |
+| **Provider calls** (KYC, cards) | None | Yes |
+| **Ops balance debited** | No | Yes |
+| **Billing** | No | Yes |
+| **Use case** | Integration, testing, demos | Production |
+
+## How it works
+
+When you use a `sk_test_` key, the API:
+
+1. **Validates your request** — required fields, email format, country code, etc. You get the same validation errors as in live mode.
+2. **Returns simulated data** — realistic fake responses with generated UUIDs, consistent fields, and proper structure.
+3. **Does NOT touch the database** — no customers, cards, or transactions are created.
+4. **Does NOT call external providers** — no KYC verification, no card issuance, no wallet creation.
+
+<Info>
+  Test mode is perfect for building and testing your integration. When you're ready, simply switch to your `sk_live_` key — the API contract is identical.
+</Info>
+
+## Identifying the mode
+
+Every response includes a `meta.mode` field:
+
+```json
+{
+  "meta": {
+    "request_id": "a4f8e2c1b3d97056",
+    "mode": "test",
+    "timestamp": "2026-06-28T14:30:00+00:00"
+  }
+}
+```
+
+## Test mode responses by endpoint
+
+### Customers
+
+| Endpoint | Test behavior |
+|----------|--------------|
+| `POST /customers` | Full validation, returns a fake customer with `verification_level: basic` |
+| `GET /customers` | Returns 3 demo customers (Alice, Bob, Charlie) |
+| `GET /customers/{code}` | Returns a demo customer with the provided `code` |
+| `PATCH /customers/{code}` | Validates input, simulates demotion rules |
+| `POST /customers/{code}/suspend` | Returns customer with `status: suspended` |
+| `POST /customers/{code}/activate` | Returns customer with `status: active` |
+
+### Cards
+
+| Endpoint | Test behavior |
+|----------|--------------|
+| `GET /cards` | Returns 1 demo Mastercard (active, balance 150.00 USD) |
+| `POST /cards` | Validates fields and brand, returns a fake card `status: pending` |
+| `GET /cards/{code}` | Returns a demo card with the provided `code` |
+| `POST /cards/{code}/freeze` | Returns card with `status: frozen` |
+| `POST /cards/{code}/topup` | Validates amount, returns simulated balance |
+
+### KYC, Balance, Wallets, Virtual Accounts, Gift Cards
+
+| Endpoint | Test behavior |
+|----------|--------------|
+| `POST /kyc/applicants` | Returns `kyc_status: pending` with fake `verification_url` |
+| `GET /kyc/applicants/{id}/status` | Returns `kyc_status: approved` |
+| `GET /balance` | Returns 4 demo balances |
+| `GET /balance/transactions` | Returns 2 demo transactions |
+| `GET /wallets` | Returns 1 demo Solana USDC wallet |
+| `GET /gift-cards/catalog` | Returns 2 demo products (Netflix, Amazon) |
+
+## Limitations
+
+- UUIDs are generated on the fly and are **not persistent**
+- No uniqueness check on `external_reference`
+- Webhooks are **not triggered** in test mode
+- Simulated data is static — it does not reflect previous API calls

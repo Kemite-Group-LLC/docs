@@ -1,0 +1,979 @@
+openapi: 3.1.0
+info:
+  title: KemyCard API
+  version: "1.0"
+  description: |
+    KemyCard API allows you to issue virtual and physical cards, manage KYC/POA verification,
+    create crypto wallets, virtual bank accounts, and purchase gift cards.
+  contact:
+    name: KemyCard API Support
+    email: api-support@kemycard.com
+
+servers:
+  - url: https://api.kemycard.com/api/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Customers
+    description: Manage your customers
+  - name: Cards
+    description: Issue and manage cards
+  - name: KYC
+    description: Identity verification
+  - name: Wallets
+    description: Crypto wallets
+  - name: Virtual Accounts
+    description: Virtual bank accounts
+  - name: Gift Cards
+    description: Gift card catalog and purchases
+  - name: Balance
+    description: Operational balances and transaction history
+
+paths:
+  # ── Customers ──
+  /customers:
+    post:
+      operationId: createCustomer
+      tags: [Customers]
+      summary: Create a customer
+      description: Creates a new customer with verification level `basic`. All fields are required except `metadata`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSuccessResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listCustomers
+      tags: [Customers]
+      summary: List customers
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, closed]
+          description: Filter by status
+      responses:
+        "200":
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerListResponse"
+
+  /customers/{code}:
+    get:
+      operationId: getCustomer
+      tags: [Customers]
+      summary: Get a customer
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateCustomer
+      tags: [Customers]
+      summary: Update a customer
+      description: |
+        Partially update a customer. Only send the fields you want to modify.
+
+        **Automatic demotion rules:**
+        - Changing `first_name`, `last_name`, or `date_of_birth` demotes to `basic` (KYC + POA reset)
+        - Changing `address`, `city`, `state`, `postal_code`, or `country` demotes from `full` to `verified` (POA reset)
+        - Changing `email`, `phone`, or `metadata` has no impact on verification
+      parameters:
+        - $ref: "#/components/parameters/code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerRequest"
+      responses:
+        "200":
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /customers/{code}/suspend:
+    post:
+      operationId: suspendCustomer
+      tags: [Customers]
+      summary: Suspend a customer
+      description: Suspends an active customer. Their cards, wallets, and other resources become unusable.
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Customer suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /customers/{code}/activate:
+    post:
+      operationId: activateCustomer
+      tags: [Customers]
+      summary: Activate a customer
+      description: Reactivates a suspended customer. Does not work on closed customers.
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Customer activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Cards ──
+  /cards:
+    post:
+      operationId: createCard
+      tags: [Cards]
+      summary: Create a card
+      description: Creates a card for a customer. Debits the partner's ops balance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardRequest"
+      responses:
+        "201":
+          description: Card creation initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardCreatedResponse"
+        "400":
+          $ref: "#/components/responses/InsufficientBalance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    get:
+      operationId: listCards
+      tags: [Cards]
+      summary: List cards
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: customer_code
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by customer UUID
+      responses:
+        "200":
+          description: Card list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardListResponse"
+
+  /cards/{code}:
+    get:
+      operationId: getCard
+      tags: [Cards]
+      summary: Get a card
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Card details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /cards/{code}/freeze:
+    post:
+      operationId: freezeCard
+      tags: [Cards]
+      summary: Freeze a card
+      description: Freezes an active card. Only active cards can be frozen.
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Card frozen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /cards/{code}/topup:
+    post:
+      operationId: topupCard
+      tags: [Cards]
+      summary: Top up a card
+      description: Funds an active card. Debits the partner's ops balance.
+      parameters:
+        - $ref: "#/components/parameters/code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: number
+                  minimum: 0.01
+                  example: 50.00
+                  description: Amount to top up
+      responses:
+        "200":
+          description: Top-up initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopupResponse"
+        "400":
+          $ref: "#/components/responses/InsufficientBalance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── KYC ──
+  /kyc/applicants:
+    post:
+      operationId: createKycApplicant
+      tags: [KYC]
+      summary: Initiate KYC verification
+      description: Starts the KYC verification process for a customer (basic → verified).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_code]
+              properties:
+                customer_code:
+                  type: string
+                  format: uuid
+                  example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "201":
+          description: KYC verification initiated
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /kyc/applicants/{customerCode}/token:
+    get:
+      operationId: getKycToken
+      tags: [KYC]
+      summary: Get KYC verification token
+      description: Generates a token and verification URL for embedding the KYC flow.
+      parameters:
+        - name: customerCode
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: KYC token generated
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kyc/applicants/{customerCode}/status:
+    get:
+      operationId: getKycStatus
+      tags: [KYC]
+      summary: Get KYC status
+      description: Returns the current KYC verification status of a customer.
+      parameters:
+        - name: customerCode
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: KYC status
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Wallets ──
+  /wallets:
+    get:
+      operationId: listWallets
+      tags: [Wallets]
+      summary: List wallets
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: customer_code
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Wallet list
+    post:
+      operationId: createWallet
+      tags: [Wallets]
+      summary: Create a wallet
+      description: Creates a crypto wallet for a customer. Debits the ops balance (type `others`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_code, blockchain]
+              properties:
+                customer_code:
+                  type: string
+                  format: uuid
+                blockchain:
+                  type: string
+                  example: solana
+                currency:
+                  type: string
+                  default: USDC
+                  example: USDC
+      responses:
+        "201":
+          description: Wallet creation initiated
+        "400":
+          $ref: "#/components/responses/InsufficientBalance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Virtual Accounts ──
+  /virtual-accounts:
+    get:
+      operationId: listVirtualAccounts
+      tags: [Virtual Accounts]
+      summary: List virtual accounts
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: customer_code
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Virtual account list
+    post:
+      operationId: createVirtualAccount
+      tags: [Virtual Accounts]
+      summary: Create a virtual account
+      description: Creates a virtual bank account for a customer. Requires `full` verification level.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_code, currency]
+              properties:
+                customer_code:
+                  type: string
+                  format: uuid
+                currency:
+                  type: string
+                  example: EUR
+      responses:
+        "201":
+          description: Virtual account creation initiated
+        "400":
+          $ref: "#/components/responses/InsufficientBalance"
+        "403":
+          description: Customer not at `full` verification level
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Gift Cards ──
+  /gift-cards/catalog:
+    get:
+      operationId: getGiftCardCatalog
+      tags: [Gift Cards]
+      summary: Browse gift card catalog
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: Filter by country (ISO alpha-3)
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: "Filter by category (streaming, gaming, shopping...)"
+      responses:
+        "200":
+          description: Gift card catalog
+
+  /gift-cards/orders:
+    post:
+      operationId: purchaseGiftCard
+      tags: [Gift Cards]
+      summary: Purchase a gift card
+      description: Purchases a gift card for a customer. Debits the ops balance (type `gift_cards`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_code, product_id, amount]
+              properties:
+                customer_code:
+                  type: string
+                  format: uuid
+                product_id:
+                  type: string
+                  example: netflix-usa-25
+                amount:
+                  type: number
+                  example: 25.00
+                quantity:
+                  type: integer
+                  default: 1
+                  example: 1
+      responses:
+        "201":
+          description: Gift card purchased
+        "400":
+          $ref: "#/components/responses/InsufficientBalance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  # ── Balance ──
+  /balance:
+    get:
+      operationId: getBalanceSummary
+      tags: [Balance]
+      summary: Get ops balance summary
+      description: Returns all operational balances for the partner.
+      responses:
+        "200":
+          description: Balance summary
+
+  /balance/transactions:
+    get:
+      operationId: listBalanceTransactions
+      tags: [Balance]
+      summary: List ops transactions
+      description: Returns the transaction history (credits and debits) on the partner's ops balances.
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Transaction list
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "API key (sk_test_... or sk_live_...)"
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: Items per page (max 100)
+    code:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource UUID
+
+  schemas:
+    # ── Customer schemas ──
+    CreateCustomerRequest:
+      type: object
+      required:
+        - external_reference
+        - first_name
+        - last_name
+        - email
+        - phone
+        - date_of_birth
+        - address
+        - city
+        - state
+        - postal_code
+        - country
+      properties:
+        external_reference:
+          type: string
+          description: Your internal user ID
+          example: user-123
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        phone:
+          type: string
+          example: "+33612345678"
+        date_of_birth:
+          type: string
+          format: date
+          example: "1990-05-15"
+        address:
+          type: string
+          example: 123 Main Street
+        city:
+          type: string
+          example: Paris
+        state:
+          type: string
+          example: IDF
+        postal_code:
+          type: string
+          example: "75001"
+        country:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 3166-1 alpha-3 country code
+          example: FRA
+        metadata:
+          type: object
+          nullable: true
+          description: Arbitrary key-value data
+          example: { "plan": "premium" }
+
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        metadata:
+          type: object
+          nullable: true
+
+    Customer:
+      type: object
+      properties:
+        code:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        external_reference:
+          type: string
+          example: user-123
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        email:
+          type: string
+          example: john@example.com
+        phone:
+          type: string
+          example: "+33612345678"
+        date_of_birth:
+          type: string
+          format: date
+          example: "1990-05-15"
+        address:
+          type: string
+          example: 123 Main Street
+        city:
+          type: string
+          example: Paris
+        state:
+          type: string
+          example: IDF
+        postal_code:
+          type: string
+          example: "75001"
+        country:
+          type: string
+          example: FRA
+        verification_level:
+          type: string
+          enum: [basic, verified, full]
+          example: basic
+        kyc_status:
+          type: string
+          enum: [not_started, pending, approved, rejected, resubmission_requested]
+          example: not_started
+        poa_status:
+          type: string
+          enum: [not_started, pending, approved, rejected, resubmission_requested]
+          example: not_started
+        status:
+          type: string
+          enum: [active, suspended, closed]
+          example: active
+        metadata:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Card schemas ──
+    CreateCardRequest:
+      type: object
+      required: [customer_code, brand, category, currency]
+      properties:
+        customer_code:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        brand:
+          type: string
+          enum: [MASTERCARD, VISA]
+          example: MASTERCARD
+        category:
+          type: string
+          enum: [prepaid, virtual_basic, virtual_classic, virtual_premium, physical]
+          example: virtual_basic
+        currency:
+          type: string
+          example: USD
+        amount:
+          type: number
+          description: Initial amount / creation fee (default 5.00)
+          example: 5.00
+
+    Card:
+      type: object
+      properties:
+        code:
+          type: string
+          format: uuid
+        customer_code:
+          type: string
+          format: uuid
+        brand:
+          type: string
+          enum: [MASTERCARD, VISA]
+        category:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, frozen, cancelled]
+        balance:
+          type: number
+        currency:
+          type: string
+        last_four:
+          type: string
+        provider:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    # ── Response wrappers ──
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: a4f8e2c1b3d97056
+        mode:
+          type: string
+          enum: [test, live]
+          example: test
+        timestamp:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 42
+        pages:
+          type: integer
+          example: 3
+
+    CustomerSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/Customer"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    CustomerListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+        meta:
+          $ref: "#/components/schemas/Meta"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CardSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/Card"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    CardListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        meta:
+          $ref: "#/components/schemas/Meta"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CardCreatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: pending
+            customer_code:
+              type: string
+              format: uuid
+            brand:
+              type: string
+              example: MASTERCARD
+            category:
+              type: string
+              example: virtual_basic
+            currency:
+              type: string
+              example: USD
+            creation_fee:
+              type: number
+              example: 5.00
+            ops_balance_after:
+              type: number
+              example: 995.00
+            message:
+              type: string
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    TopupResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            card_code:
+              type: string
+              format: uuid
+            topup_amount:
+              type: number
+              example: 50.00
+            ops_balance_after:
+              type: number
+              example: 945.00
+            message:
+              type: string
+              example: Top-up initiated.
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Missing required fields.
+            details:
+              type: object
+              nullable: true
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            error:
+              code: RESOURCE_NOT_FOUND
+              message: Resource not found.
+              details: null
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InsufficientBalance:
+      description: Insufficient ops balance
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            error:
+              code: INSUFFICIENT_BALANCE
+              message: Insufficient ops balance.
+              details:
+                required: 50.00
+                available: 10.00
+                balance_type: cards_mastercard

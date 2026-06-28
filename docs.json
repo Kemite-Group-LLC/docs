@@ -1,88 +1,13 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "KemyCard API",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
@@ -91,32 +16,147 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:api-support@kemycard.com"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "href": "https://partner.kemycard.com"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "getting-started/api-keys",
+              "getting-started/first-call",
+              "getting-started/test-mode"
+            ]
+          },
+          {
+            "group": "Integration Guides",
+            "pages": [
+              "guides/customer-to-card",
+              "guides/kyc-flow",
+              "guides/poa-flow",
+              "guides/topup-card",
+              "guides/ops-balance",
+              "guides/error-handling"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview"
+            ]
+          },
+          {
+            "group": "Customers",
+            "pages": [
+              "api-reference/customers/create",
+              "api-reference/customers/list",
+              "api-reference/customers/get",
+              "api-reference/customers/update",
+              "api-reference/customers/suspend",
+              "api-reference/customers/activate"
+            ]
+          },
+          {
+            "group": "Cards",
+            "pages": [
+              "api-reference/cards/create",
+              "api-reference/cards/list",
+              "api-reference/cards/get",
+              "api-reference/cards/freeze",
+              "api-reference/cards/topup"
+            ]
+          },
+          {
+            "group": "KYC",
+            "pages": [
+              "api-reference/kyc/create",
+              "api-reference/kyc/token",
+              "api-reference/kyc/status"
+            ]
+          },
+          {
+            "group": "Wallets",
+            "pages": [
+              "api-reference/wallets/create",
+              "api-reference/wallets/list"
+            ]
+          },
+          {
+            "group": "Virtual Accounts",
+            "pages": [
+              "api-reference/virtual-accounts/create",
+              "api-reference/virtual-accounts/list"
+            ]
+          },
+          {
+            "group": "Gift Cards",
+            "pages": [
+              "api-reference/gift-cards/catalog",
+              "api-reference/gift-cards/purchase"
+            ]
+          },
+          {
+            "group": "Balance",
+            "pages": [
+              "api-reference/balance/summary",
+              "api-reference/balance/transactions"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "API Reference",
+          "href": "/api-reference/overview",
+          "icon": "square-terminal"
+        },
+        {
+          "anchor": "Postman Collection",
+          "href": "https://partner.kemycard.com/postman",
+          "icon": "rectangle-terminal"
+        }
+      ]
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/kemycard",
+      "linkedin": "https://linkedin.com/company/kemycard",
+      "github": "https://github.com/kemycard"
     }
-  }
+  },
+  "api": {
+    "baseUrl": "https://api.kemycard.com/api/v1",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "openapi": "openapi.yaml"
 }

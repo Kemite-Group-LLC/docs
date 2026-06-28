@@ -1,0 +1,53 @@
+---
+title: "Top Up a Card"
+description: "Fund a card from your ops balance"
+---
+
+Once a card is `active`, you can top it up from your operational balance.
+
+## Request
+
+```bash
+curl -X POST https://api.kemycard.com/api/v1/cards/c1d2e3f4-.../topup \
+  -H "Authorization: Bearer sk_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50.00}'
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "card_code": "c1d2e3f4-...",
+    "topup_amount": 50.00,
+    "ops_balance_after": 945.00,
+    "message": "Top-up initiated."
+  }
+}
+```
+
+## How it works
+
+1. The `amount` is debited from your ops balance (`cards_mastercard` or `cards_visa`, depending on the card's brand)
+2. The card is credited with the same amount via the card provider
+3. The transaction is recorded in your ops balance history
+
+## Requirements
+
+- Card must be `active` (not frozen, pending, or cancelled)
+- Amount must be positive
+- Ops balance must have sufficient funds
+
+## Common errors
+
+| HTTP | Code | When |
+|------|------|------|
+| 400 | `INSUFFICIENT_BALANCE` | Not enough funds in your ops balance |
+| 404 | `RESOURCE_NOT_FOUND` | Card not found |
+| 422 | `VALIDATION_ERROR` | Amount missing, negative, or card not active |
+
+<Tip>
+  Check your current ops balance with `GET /balance` before topping up to avoid `INSUFFICIENT_BALANCE` errors.
+</Tip>
