@@ -47,6 +47,7 @@
               "guides/poa-flow",
               "guides/topup-card",
               "guides/ops-balance",
+              "guides/webhooks",
               "guides/error-handling"
             ]
           }
@@ -116,6 +117,19 @@
             "pages": [
               "api-reference/balance/summary",
               "api-reference/balance/transactions"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "api-reference/webhooks/create",
+              "api-reference/webhooks/list",
+              "api-reference/webhooks/get",
+              "api-reference/webhooks/update",
+              "api-reference/webhooks/rotate-secret",
+              "api-reference/webhooks/ping",
+              "api-reference/webhooks/deliveries",
+              "api-reference/webhooks/events"
             ]
           }
         ]

@@ -31,6 +31,8 @@ tags:
     description: Gift card catalog and purchases
   - name: Balance
     description: Operational balances and transaction history
+  - name: Webhooks
+    description: Webhook endpoints and delivery management
 
 paths:
   # ── Customers ──
@@ -533,6 +535,240 @@ paths:
         "200":
           description: Transaction list
 
+  # ── Webhooks ──
+  /webhooks:
+    post:
+      operationId: createWebhookEndpoint
+      tags: [Webhooks]
+      summary: Create a webhook endpoint
+      description: |
+        Creates a new webhook endpoint. A ping is sent immediately to validate the URL — it must respond with a `2xx` status code.
+
+        **Important:** The `secret` is only returned in this response. Store it securely.
+
+        **Prerequisite:** You must have at least one active webhook endpoint before you can create customers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWebhookRequest"
+      responses:
+        "201":
+          description: Webhook endpoint created (includes secret)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointWithSecretResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    get:
+      operationId: listWebhookEndpoints
+      tags: [Webhooks]
+      summary: List webhook endpoints
+      description: Returns all webhook endpoints for your account (active and inactive).
+      responses:
+        "200":
+          description: List of webhook endpoints
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointListResponse"
+
+  /webhooks/events:
+    get:
+      operationId: listWebhookEvents
+      tags: [Webhooks]
+      summary: List available events
+      description: Returns the list of all event types you can subscribe to.
+      responses:
+        "200":
+          description: Available events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          type: string
+                        example: ["kyc.approved", "kyc.rejected", "card.transaction", "card.activated"]
+                      wildcard:
+                        type: string
+                        example: "*"
+                      message:
+                        type: string
+                        example: 'Use "*" to subscribe to all events.'
+
+  /webhooks/{code}:
+    get:
+      operationId: getWebhookEndpoint
+      tags: [Webhooks]
+      summary: Get a webhook endpoint
+      description: Returns details of a specific webhook endpoint.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Webhook endpoint UUID
+      responses:
+        "200":
+          description: Webhook endpoint details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateWebhookEndpoint
+      tags: [Webhooks]
+      summary: Update a webhook endpoint
+      description: |
+        Update the URL, events, description, or active status. If the URL changes, a new ping is sent for validation.
+
+        **Note:** Endpoints cannot be deleted — only deactivated via `is_active: false`.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Webhook endpoint UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWebhookRequest"
+      responses:
+        "200":
+          description: Webhook endpoint updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /webhooks/{code}/rotate-secret:
+    post:
+      operationId: rotateWebhookSecret
+      tags: [Webhooks]
+      summary: Rotate webhook secret
+      description: |
+        Generates a new HMAC secret for this endpoint. The old secret is **invalidated immediately**.
+        Update your server code with the new secret before any pending deliveries arrive.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Webhook endpoint UUID
+      responses:
+        "200":
+          description: New secret generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        format: uuid
+                      secret:
+                        type: string
+                        example: "whsec_a1b2c3d4e5f6..."
+                      message:
+                        type: string
+                        example: "Secret rotated successfully. Update your webhook verification code immediately."
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /webhooks/{code}/ping:
+    post:
+      operationId: pingWebhookEndpoint
+      tags: [Webhooks]
+      summary: Ping webhook endpoint
+      description: Sends a test ping to verify the endpoint is reachable and responding with a `2xx` status code.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Webhook endpoint UUID
+      responses:
+        "200":
+          description: Ping result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                        description: Whether the ping received a 2xx response
+                      url:
+                        type: string
+                      message:
+                        type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /webhooks/{code}/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      tags: [Webhooks]
+      summary: List delivery history
+      description: Returns the paginated delivery history for a specific webhook endpoint. Each delivery shows the event type, status, HTTP response code, attempt number, and idempotency key.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Webhook endpoint UUID
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      responses:
+        "200":
+          description: Delivery history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveryListResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -568,6 +804,183 @@ components:
       description: Resource UUID
 
   schemas:
+    # ── Webhook schemas ──
+    CreateWebhookRequest:
+      type: object
+      required: [url, events]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: "HTTPS URL to receive webhook events. HTTP URLs are rejected."
+          example: "https://your-app.com/webhooks/kemycard"
+        events:
+          type: array
+          items:
+            type: string
+          description: 'List of event types to subscribe to. Use ["*"] for all events.'
+          example: ["kyc.approved", "kyc.rejected", "card.transaction"]
+        description:
+          type: string
+          nullable: true
+          description: "Optional label for this endpoint"
+          example: "Production webhook"
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: "New HTTPS URL (triggers a validation ping)"
+          example: "https://new-url.com/webhooks"
+        events:
+          type: array
+          items:
+            type: string
+          description: 'Updated list of event types'
+          example: ["*"]
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          description: "Set to false to disable, true to re-enable (resets failure counter)"
+
+    WebhookEndpoint:
+      type: object
+      properties:
+        code:
+          type: string
+          format: uuid
+        url:
+          type: string
+          example: "https://your-app.com/webhooks/kemycard"
+        events:
+          type: array
+          items:
+            type: string
+          example: ["kyc.approved", "kyc.rejected", "card.transaction"]
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        consecutive_failures:
+          type: integer
+          description: "Number of consecutive failed deliveries. Auto-deactivates at 100."
+          example: 0
+        last_success_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_failure_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    WebhookEndpointWithSecret:
+      allOf:
+        - $ref: "#/components/schemas/WebhookEndpoint"
+        - type: object
+          properties:
+            secret:
+              type: string
+              description: "HMAC-SHA256 secret. **Only shown at creation time.** Store it securely."
+              example: "whsec_a1b2c3d4e5f6789012345678901234567890123456789012345678901234"
+
+    WebhookDelivery:
+      type: object
+      properties:
+        code:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          example: "kyc.approved"
+        idempotency_key:
+          type: string
+          description: "Unique key for deduplication"
+          example: "wh_del_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        status:
+          type: string
+          enum: [pending, delivered, failed]
+          example: "delivered"
+        attempt:
+          type: integer
+          description: "Current attempt number (max 7)"
+          example: 1
+        response_status:
+          type: integer
+          nullable: true
+          description: "HTTP status code received from your server"
+          example: 200
+        duration_ms:
+          type: integer
+          nullable: true
+          description: "Request duration in milliseconds"
+          example: 145
+        next_retry_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    WebhookEndpointResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/WebhookEndpoint"
+
+    WebhookEndpointWithSecretResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/WebhookEndpointWithSecret"
+
+    WebhookEndpointListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookEndpoint"
+
+    WebhookDeliveryListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebhookDelivery"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
     # ── Customer schemas ──
     CreateCustomerRequest:
       type: object

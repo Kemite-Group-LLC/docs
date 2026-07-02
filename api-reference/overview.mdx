@@ -104,3 +104,16 @@ All list endpoints support pagination:
 |--------|----------|-------------|
 | `GET` | `/gift-cards/catalog` | Browse gift card catalog |
 | `POST` | `/gift-cards/orders` | Purchase a gift card |
+
+### No subscription required — Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/webhooks` | Create a webhook endpoint |
+| `GET` | `/webhooks` | List webhook endpoints |
+| `GET` | `/webhooks/events` | List available events |
+| `GET` | `/webhooks/{code}` | Get a webhook endpoint |
+| `PATCH` | `/webhooks/{code}` | Update a webhook endpoint |
+| `POST` | `/webhooks/{code}/rotate-secret` | Rotate the HMAC secret |
+| `POST` | `/webhooks/{code}/ping` | Send a test ping |
+| `GET` | `/webhooks/{code}/deliveries` | List delivery history |
