@@ -211,74 +211,29 @@ Response:
 
 That's it. From now on, every time an event you subscribed to occurs, we'll POST it to your URL with the full payload and signature headers.
 
-## Available events
+## Available events (22)
 
 Subscribe to specific events, or use `"*"` to receive everything.
 
-### KYC events
-
-| Event | Trigger |
-|-------|---------|
-| `kyc.approved` | Customer's identity verification was approved |
-| `kyc.rejected` | Customer's identity verification was rejected |
-| `kyc.pending_review` | Verification sent for manual review |
-| `kyc.expired` | Verification document expired |
-
-### Card events
-
-| Event | Trigger |
-|-------|---------|
-| `card.activated` | Card is active and ready to use |
-| `card.transaction` | Purchase, ATM withdrawal, or refund on the card |
-| `card.frozen` | Card was frozen |
-| `card.unfrozen` | Card was unfrozen |
-| `card.expired` | Card has expired |
-| `card.topup.completed` | Card reload completed |
-
-### Wallet events
-
-| Event | Trigger |
-|-------|---------|
-| `wallet.deposit_received` | Crypto deposit confirmed on a wallet |
-| `wallet.withdrawal_completed` | Crypto withdrawal completed |
-| `wallet.withdrawal_failed` | Crypto withdrawal failed |
-
-### Virtual account events
-
-| Event | Trigger |
-|-------|---------|
-| `virtual_account.deposit_received` | Fiat deposit received on virtual account |
-| `virtual_account.transfer_completed` | Outgoing transfer completed |
-| `virtual_account.transfer_failed` | Outgoing transfer failed |
-
-### Gift card events
-
-| Event | Trigger |
-|-------|---------|
-| `gift_card.delivered` | Gift card codes are available |
-| `gift_card.failed` | Gift card order failed |
-| `gift_card.refunded` | Gift card was refunded |
-
-### Balance events
-
-| Event | Trigger |
-|-------|---------|
-| `balance.deposit_confirmed` | USDC deposit confirmed on ops balance |
-| `balance.low_balance` | Ops balance dropped below threshold |
+| Category | Events |
+|----------|--------|
+| **KYC** | `kyc.approved`, `kyc.rejected`, `kyc.pending_review`, `kyc.expired` |
+| **Cards** | `card.activated`, `card.transaction`, `card.frozen`, `card.unfrozen`, `card.expired`, `card.topup.completed` |
+| **Wallets** | `wallet.deposit_received`, `wallet.withdrawal_completed`, `wallet.withdrawal_failed` |
+| **Virtual Accounts** | `virtual_account.deposit_received`, `virtual_account.transfer_completed`, `virtual_account.transfer_failed` |
+| **Gift Cards** | `gift_card.delivered`, `gift_card.failed`, `gift_card.refunded` |
+| **Balance** | `balance.deposit_confirmed`, `balance.debited`, `balance.low_balance` |
 
 ## Webhook payload format
 
-Every webhook delivery has this structure:
+Every webhook delivery is wrapped in this envelope:
 
 ```json
 {
   "id": "evt_a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "type": "kyc.approved",
   "created_at": "2026-07-02T14:30:00+00:00",
-  "data": {
-    "customer_code": "c1d2e3f4-a5b6-7890-cdef-123456789012",
-    "level": "verified"
-  },
+  "data": { ... },
   "mode": "live"
 }
 ```
@@ -288,8 +243,412 @@ Every webhook delivery has this structure:
 | `id` | Unique event ID (format: `evt_<uuid>`) |
 | `type` | Event type (e.g. `kyc.approved`) |
 | `created_at` | ISO 8601 timestamp |
-| `data` | Event-specific data |
+| `data` | Event-specific payload (see below) |
 | `mode` | `live` or `test` |
+
+---
+
+## Event payloads
+
+Below is the detailed `data` payload for each event, along with when it is triggered.
+
+### KYC events
+
+<AccordionGroup>
+  <Accordion title="kyc.approved">
+    **Triggered when:** The customer's identity verification (via Veriff) is approved. The customer reaches `verified` level and can now be issued cards.
+
+    ```json
+    {
+      "customer_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "level": "verified",
+      "first_name": "John",
+      "last_name": "Doe",
+      "verified_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="kyc.rejected">
+    **Triggered when:** The KYC verification is rejected (unreadable document, blurry photo, fraud detected, etc.). The customer must resubmit.
+
+    ```json
+    {
+      "customer_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "level": "unverified",
+      "reason": "Document is not readable",
+      "rejected_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="kyc.pending_review">
+    **Triggered when:** The KYC has been submitted but requires manual review by the verification team.
+
+    ```json
+    {
+      "customer_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "level": "pending_review",
+      "submitted_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="kyc.expired">
+    **Triggered when:** The customer's identity document has expired and the KYC is no longer valid.
+
+    ```json
+    {
+      "customer_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "level": "expired",
+      "expired_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Card events
+
+<AccordionGroup>
+  <Accordion title="card.activated">
+    **Triggered when:** A virtual or physical card has been created and activated by the provider. The card is ready to use.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "brand": "VISA",
+      "category": "basic",
+      "last_four": "4242",
+      "status": "active",
+      "currency": "USD",
+      "balance": 0.00,
+      "created_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="card.transaction">
+    **Triggered when:** A transaction occurs on the card — online purchase, in-store payment, ATM withdrawal, or refund.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 29.99,
+      "currency": "USD",
+      "merchant": "Netflix",
+      "merchant_category": "Digital Goods",
+      "type": "purchase",
+      "status": "confirmed",
+      "balance_after": 70.01,
+      "transaction_id": "txn_019abc12-3456-7890",
+      "transacted_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="card.frozen">
+    **Triggered when:** A card is frozen, either by the partner via the API or automatically due to fraud suspicion.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "reason": "Requested by partner",
+      "frozen_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="card.unfrozen">
+    **Triggered when:** A previously frozen card has been unfrozen and is usable again.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "unfrozen_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="card.expired">
+    **Triggered when:** A card has reached its expiration date and is no longer usable.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "brand": "MASTERCARD",
+      "last_four": "1234",
+      "expired_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="card.topup.completed">
+    **Triggered when:** A card reload has been confirmed by the provider. The card balance has been credited.
+
+    ```json
+    {
+      "card_code": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 50.00,
+      "currency": "USD",
+      "new_balance": 120.00,
+      "topup_id": "txn_019abc12-3456-7890",
+      "completed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Wallet events
+
+<AccordionGroup>
+  <Accordion title="wallet.deposit_received">
+    **Triggered when:** A crypto deposit has been received and confirmed on a customer's wallet.
+
+    ```json
+    {
+      "wallet_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 150.00,
+      "currency": "USDC",
+      "network": "solana",
+      "tx_hash": "5xYz...abc123",
+      "from_address": "9WzD...def456",
+      "new_balance": 350.00,
+      "confirmed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="wallet.withdrawal_completed">
+    **Triggered when:** A crypto withdrawal initiated by the partner has been confirmed on-chain.
+
+    ```json
+    {
+      "wallet_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 100.00,
+      "currency": "USDC",
+      "network": "solana",
+      "tx_hash": "7aBC...xyz789",
+      "to_address": "3eFg...hij012",
+      "new_balance": 250.00,
+      "completed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="wallet.withdrawal_failed">
+    **Triggered when:** A crypto withdrawal has failed (insufficient on-chain balance, provider error, etc.).
+
+    ```json
+    {
+      "wallet_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 100.00,
+      "currency": "USDC",
+      "network": "solana",
+      "reason": "Insufficient on-chain balance",
+      "failed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Virtual account events
+
+<AccordionGroup>
+  <Accordion title="virtual_account.deposit_received">
+    **Triggered when:** An incoming bank transfer has been received on a customer's virtual account.
+
+    ```json
+    {
+      "account_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 500.00,
+      "currency": "EUR",
+      "sender_name": "ACME Corp",
+      "sender_iban": "FR76...1234",
+      "reference": "INV-2026-001",
+      "new_balance": 1500.00,
+      "received_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="virtual_account.transfer_completed">
+    **Triggered when:** An outgoing transfer initiated via the API has been executed successfully.
+
+    ```json
+    {
+      "account_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 200.00,
+      "currency": "EUR",
+      "recipient_name": "John Doe",
+      "recipient_iban": "DE89...5678",
+      "reference": "PAY-2026-042",
+      "new_balance": 1300.00,
+      "completed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="virtual_account.transfer_failed">
+    **Triggered when:** An outgoing transfer has failed (invalid recipient account, bank rejection, etc.).
+
+    ```json
+    {
+      "account_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 200.00,
+      "currency": "EUR",
+      "reason": "Recipient account closed",
+      "failed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Gift card events
+
+<AccordionGroup>
+  <Accordion title="gift_card.delivered">
+    **Triggered when:** A gift card order has been fulfilled successfully. The gift card code is available.
+
+    ```json
+    {
+      "order_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "product_name": "Netflix Gift Card $25",
+      "brand": "Netflix",
+      "amount": 25.00,
+      "currency": "USD",
+      "delivered_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="gift_card.failed">
+    **Triggered when:** A gift card order has failed (product unavailable, provider error, etc.).
+
+    ```json
+    {
+      "order_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "product_name": "Amazon Gift Card $50",
+      "brand": "Amazon",
+      "amount": 50.00,
+      "currency": "USD",
+      "reason": "Product temporarily unavailable",
+      "failed_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+  <Accordion title="gift_card.refunded">
+    **Triggered when:** A failed gift card order has been refunded. The amount has been credited back to your ops balance.
+
+    ```json
+    {
+      "order_id": "019abc12-3456-7890-abcd-ef0123456789",
+      "customer_code": "019def34-5678-9012-abcd-ef3456789012",
+      "amount": 50.00,
+      "currency": "USD",
+      "balance_type": "gift_cards",
+      "new_balance": 450.00,
+      "refunded_at": "2026-07-04T14:30:00+00:00"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Balance events
+
+<AccordionGroup>
+  <Accordion title="balance.deposit_confirmed">
+    **Triggered when:** A USDC (Solana) deposit has been received and confirmed on one of your ops balance deposit addresses.
+
+    ```json
+    {
+      "amount": 485.00,
+      "fee": 15.00,
+      "gross_amount": 500.00,
+      "tx_hash": "5xYz...abc123",
+      "balance_type": "cards_visa",
+      "new_balance": 1485.00,
+      "currency": "USD",
+      "from_address": "9WzD...def456",
+      "chain": "solana"
+    }
+    ```
+  </Accordion>
+  <Accordion title="balance.debited">
+    **Triggered when:** An automatic debit occurs on your ops balance — card creation, card top-up, subscription payment, gift card purchase, etc. Sent for every paid operation.
+
+    ```json
+    {
+      "amount": 5.00,
+      "reason": "card_creation",
+      "balance_type": "cards_visa",
+      "balance_before": 1485.00,
+      "balance_after": 1480.00,
+      "currency": "USD",
+      "brand": "VISA",
+      "customer_code": "019abc12-3456-7890-abcd-ef0123456789"
+    }
+    ```
+
+    **Possible `reason` values:**
+
+    | Reason | Description |
+    |--------|-------------|
+    | `card_creation` | Virtual or physical card created |
+    | `card_topup` | Card top-up / reload |
+    | `subscription` | API subscription payment or renewal |
+    | `gift_card_purchase` | Gift card order |
+    | `kyc_verification` | Customer KYC verification |
+    | `wallet_creation` | Crypto wallet creation |
+    | `virtual_account_creation` | Virtual bank account creation |
+
+    Additional fields (e.g. `brand`, `customer_code`, `product`, `billing_cycle`) vary depending on the `reason`.
+  </Accordion>
+  <Accordion title="balance.low_balance">
+    **Triggered when:** Your ops balance drops below the threshold you configured (`lowBalanceThreshold`, default $100). This is triggered in two ways:
+    - **Real-time** — immediately after a debit that pushes the balance below the threshold
+    - **Scheduled** — every 4 hours, a CRON job checks all active partners
+
+    An alert email is also sent to your registered email address.
+
+    ```json
+    {
+      "threshold": 100.00,
+      "balances": [
+        {
+          "type": "cards_visa",
+          "balance": 45.20,
+          "currency": "USD"
+        },
+        {
+          "type": "cards_mastercard",
+          "balance": 12.50,
+          "currency": "USD"
+        },
+        {
+          "type": "gift_cards",
+          "balance": 8.00,
+          "currency": "USD"
+        },
+        {
+          "type": "others",
+          "balance": 35.00,
+          "currency": "USD"
+        }
+      ]
+    }
+    ```
+
+    **Balance types:**
+
+    | Type | Covers |
+    |------|--------|
+    | `cards_visa` | Visa card operations |
+    | `cards_mastercard` | Mastercard card operations |
+    | `gift_cards` | Gift card purchases |
+    | `others` | Wallets, virtual accounts, KYC, subscriptions |
+  </Accordion>
+</AccordionGroup>
 
 ## Signature verification
 
