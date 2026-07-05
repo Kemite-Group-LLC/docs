@@ -10,7 +10,9 @@ info:
     email: api-support@kemycard.com
 
 servers:
-  - url: https://api.kemycard.com/api/v1
+  - url: https://d892-167-172-238-40.ngrok-free.app/api/v1
+    description: Development (ngrok)
+  - url: https://kemycard.com/api/v1
     description: Production
 
 security:
