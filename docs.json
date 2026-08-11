@@ -162,7 +162,7 @@
     }
   },
   "api": {
-    "baseUrl": "https://d892-167-172-238-40.ngrok-free.app/api/v1",
+    "baseUrl": "https://api-dev.kemycard.com/api/v1",
     "auth": {
       "method": "bearer"
     }
