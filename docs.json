@@ -74,6 +74,13 @@
             ]
           },
           {
+            "group": "Card Products",
+            "pages": [
+              "api-reference/card-products/list",
+              "api-reference/card-products/get"
+            ]
+          },
+          {
             "group": "Cards",
             "pages": [
               "api-reference/cards/create",

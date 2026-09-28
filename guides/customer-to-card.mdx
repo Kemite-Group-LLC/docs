@@ -8,19 +8,32 @@ This guide walks you through the full flow to issue a card for a customer.
 ## Overview
 
 ```
-Step 1: Create customer        → BASIC
-Step 2: Submit KYC             → PENDING
-Step 3: KYC approved           → VERIFIED
-Step 4: Create card            → PENDING
-Step 5: Card activated         → ACTIVE
-Step 6: Top up card            → Funded
+Step 1: Browse card products   → Choose a product
+Step 2: Create customer        → BASIC
+Step 3: Submit KYC             → PENDING
+Step 4: KYC approved           → VERIFIED
+Step 5: Create card            → PENDING
+Step 6: Card activated         → ACTIVE
+Step 7: Top up card            → Funded
 ```
 
 <Info>
-  A customer must be at least `verified` (KYC approved) to receive a card.
+  A customer must reach the product's `required_level` (usually `verified`) to receive a card.
+  Browse the [card product catalog](/api-reference/card-products/list) to see available products, their limits and fees.
 </Info>
 
-## Step 1: Create a customer
+## Step 1: Browse card products
+
+Start by consulting the catalog to find the right product for your use case:
+
+```bash
+curl -X GET "https://api.kemycard.com/api/v1/cards/products?brand=MASTERCARD&type=virtual" \
+  -H "Authorization: Bearer sk_test_YOUR_KEY"
+```
+
+Each product specifies its `required_level`, limits (`max_balance`, `max_reload`, `spend_limit_monthly`), features (`google_pay`, `apple_pay`, `atm_available`) and fees (`creation_fee`, `reload_fee`, etc.).
+
+## Step 2: Create a customer
 
 ```bash
 curl -X POST https://api.kemycard.com/api/v1/customers \
@@ -43,7 +56,7 @@ curl -X POST https://api.kemycard.com/api/v1/customers \
 
 The customer is created with `verification_level: basic`.
 
-## Step 2: Submit KYC verification
+## Step 3: Submit KYC verification
 
 ```bash
 curl -X POST https://api.kemycard.com/api/v1/kyc/applicants \
@@ -54,7 +67,7 @@ curl -X POST https://api.kemycard.com/api/v1/kyc/applicants \
 
 Response includes a `verification_url` — redirect your customer there, or use the SDK token to embed the verification flow.
 
-## Step 3: Wait for KYC approval
+## Step 4: Wait for KYC approval
 
 Poll the status endpoint or listen for the `kyc.approved` webhook:
 
@@ -65,7 +78,7 @@ curl -X GET https://api.kemycard.com/api/v1/kyc/applicants/a1b2c3d4-.../status \
 
 Once approved, the customer automatically upgrades to `verification_level: verified`.
 
-## Step 4: Create a card
+## Step 5: Create a card
 
 ```bash
 curl -X POST https://api.kemycard.com/api/v1/cards \
@@ -83,11 +96,11 @@ curl -X POST https://api.kemycard.com/api/v1/cards \
   Card creation debits your ops balance (`cards_mastercard` or `cards_visa`). Make sure you have sufficient funds.
 </Warning>
 
-## Step 5: Card activated
+## Step 6: Card activated
 
 Once the provider confirms, the card status changes to `active`. You'll receive a `card.activated` webhook.
 
-## Step 6: Top up the card
+## Step 7: Top up the card
 
 ```bash
 curl -X POST https://api.kemycard.com/api/v1/cards/c1d2e3f4-.../topup \

@@ -21,6 +21,8 @@ security:
 tags:
   - name: Customers
     description: Manage your customers
+  - name: Card Products
+    description: Browse the card product catalog
   - name: Cards
     description: Issue and manage cards
   - name: KYC
@@ -170,6 +172,58 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/ValidationError"
+
+  # ── Card Products ──
+  /cards/products:
+    get:
+      operationId: listCardProducts
+      tags: [Card Products]
+      summary: List card products
+      description: Returns the catalog of available card products with their limits, fees, and features.
+      parameters:
+        - name: brand
+          in: query
+          schema:
+            type: string
+            enum: [MASTERCARD, VISA]
+          description: Filter by card brand
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [virtual, physical]
+          description: Filter by card type
+        - name: currency
+          in: query
+          schema:
+            type: string
+            example: USD
+          description: Filter by currency
+      responses:
+        "200":
+          description: Product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardProductListResponse"
+
+  /cards/products/{code}:
+    get:
+      operationId: getCardProduct
+      tags: [Card Products]
+      summary: Get a card product
+      description: Returns details of a specific card product by its UUID.
+      parameters:
+        - $ref: "#/components/parameters/code"
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardProductSuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ── Cards ──
   /cards:
@@ -1189,11 +1243,142 @@ components:
           type: string
         last_four:
           type: string
-        provider:
-          type: string
         created_at:
           type: string
           format: date-time
+
+    CardProduct:
+      type: object
+      properties:
+        code:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mastercard Virtual Basic
+        description:
+          type: string
+          nullable: true
+          example: Virtual Mastercard for online transactions
+        brand:
+          type: string
+          enum: [MASTERCARD, VISA]
+        currency:
+          type: string
+          example: USD
+        type:
+          type: string
+          enum: [virtual, physical]
+        is_issuable:
+          type: boolean
+          description: Whether new cards can be created for this product
+        is_reloadable:
+          type: boolean
+          description: Whether cards of this product can be topped up
+        required_level:
+          type: string
+          enum: [basic, verified, full]
+          description: Minimum KYC level required to order this product
+        limits:
+          type: object
+          properties:
+            max_balance:
+              type: number
+              example: 1000.00
+            min_reload:
+              type: number
+              example: 5.00
+            max_reload:
+              type: number
+              example: 1000.00
+            spend_limit_monthly:
+              type: number
+              example: 5000.00
+            max_card_per_user:
+              type: integer
+              example: 3
+            period_of_validity_months:
+              type: integer
+              example: 24
+        features:
+          type: object
+          properties:
+            google_pay:
+              type: boolean
+            apple_pay:
+              type: boolean
+            atm_available:
+              type: boolean
+        fees:
+          type: object
+          description: "Fees in free-text format (e.g. \"5.00 USD + 3%\"). Null means no fee."
+          properties:
+            creation_fee:
+              type: string
+              nullable: true
+              example: "5.00 USD"
+            reload_fee:
+              type: string
+              nullable: true
+              example: "1.50 USD + 2%"
+            monthly_fee:
+              type: string
+              nullable: true
+            auth_fee:
+              type: string
+              nullable: true
+            fx_cross_border_fee:
+              type: string
+              nullable: true
+              example: "3%"
+        atm_limits:
+          type: object
+          nullable: true
+          description: Present only when features.atm_available is true
+          properties:
+            amount_per_transaction:
+              type: number
+              nullable: true
+              example: 500.00
+            amount_per_day:
+              type: number
+              nullable: true
+              example: 1000.00
+            transactions_per_day:
+              type: integer
+              nullable: true
+              example: 3
+
+    CardProductSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/CardProduct"
+        meta:
+          $ref: "#/components/schemas/Meta"
+
+    CardProductListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardProduct"
+        meta:
+          allOf:
+            - $ref: "#/components/schemas/Meta"
+            - type: object
+              properties:
+                total:
+                  type: integer
+                  description: Number of products returned
+                  example: 3
 
     # ── Response wrappers ──
     Meta:
